@@ -265,7 +265,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-lg font-bold tracking-tight text-white">CADENZA</h1>
+                        <h1 class="text-lg font-bold tracking-tight text-white">Flux</h1>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping"></span> AI NEURAL CORE
                         </span>
@@ -501,7 +501,7 @@
     <!-- SYSTEM PORTABILITY FOOTER -->
     <footer class="mt-8 flex justify-end max-w-[1700px] w-full mx-auto">
         <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center gap-4 font-mono">
-            <span class="text-[10px] text-slate-400 uppercase border-r border-white/10 pr-4">Cadenza AI Hub v3.2</span>
+            <span class="text-[10px] text-slate-400 uppercase border-r border-white/10 pr-4">Flux AI Hub v3.2</span>
             <button id="export-btn" class="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-blue-400 transition-colors cursor-pointer">
                 <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Export JSON
@@ -564,8 +564,8 @@
             const totalDays = getDaysInMonth(state.viewYear, state.viewMonth);
             document.getElementById('total-days-month').innerText = totalDays;
 
-            const savedData = localStorage.getItem('cadenza_flow_planner_tasks');
-            const savedSleep = localStorage.getItem('cadenza_flow_planner_sleep');
+            const savedData = localStorage.getItem('Flux_flow_planner_tasks');
+            const savedSleep = localStorage.getItem('Flux_flow_planner_sleep');
 
             try { state.tasksByDay = savedData ? JSON.parse(savedData) : {}; } catch (e) { state.tasksByDay = {}; }
             try { state.sleepByDay = savedSleep ? JSON.parse(savedSleep) : {}; } catch (e) { state.sleepByDay = {}; }
@@ -584,14 +584,14 @@
         }
 
         function saveToLocalStorage() {
-            localStorage.setItem('cadenza_flow_planner_tasks', JSON.stringify(state.tasksByDay));
+            localStorage.setItem('Flux_flow_planner_tasks', JSON.stringify(state.tasksByDay));
             runAIAnalyticsEngine();
             if (state.activeTab === 'analytics') renderAdvancedAnalytics();
             updateAnalytics();
         }
 
         function saveSleepToLocalStorage() {
-            localStorage.setItem('cadenza_flow_planner_sleep', JSON.stringify(state.sleepByDay));
+            localStorage.setItem('Flux_flow_planner_sleep', JSON.stringify(state.sleepByDay));
         }
 
         function setupClock() {
@@ -1308,7 +1308,7 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportBundle, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "cadenza_ai_planner_data.json");
+            downloadAnchor.setAttribute("download", "Flux_planner_data.json");
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
