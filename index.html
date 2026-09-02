@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadenza — Executive AI Edition</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js">
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #07090e;
+            color: #f1f5f9;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(13, 18, 30, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .ai-glow-border {
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.15);
+        }
+
+        input:focus,
+        select:focus,
+        button:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        .custom-cb {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .custom-cb:checked {
+            border-color: transparent;
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .custom-cb:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 800;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .tab-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+            color: #60a5fa;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .insight-card {
+            border-left: 3px solid;
+            transition: all 0.2s;
+        }
+        .insight-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* Analytics visualization UI */
+        .chart-container { background: radial-gradient(circle at 15% 15%, rgba(99,102,241,.10), transparent 35%), linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)); border-radius: 1.1rem; padding: .85rem .85rem .55rem; border: 1px solid rgba(255,255,255,.07); box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 16px 40px rgba(0,0,0,.18); }
+        .matrix-shell { border: 1px solid rgba(255,255,255,.07); border-radius: 1rem; background: rgba(2,6,23,.35); overflow: hidden; }
+        .matrix-scroll { overflow-x: auto; overflow-y: auto; max-height: 430px; scrollbar-width: thin; }
+        .day-matrix { min-width: max-content; display: grid; grid-template-columns: minmax(210px, 2.2fr) 88px repeat(var(--matrix-days), 34px); align-items: center; }
+        .day-matrix-header { position: sticky; top: 0; z-index: 4; background: rgba(8,12,22,.96); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,.08); }
+        .day-matrix > div { min-height: 42px; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(255,255,255,.035); }
+        .day-matrix .task-col { justify-content: flex-start; padding: 0 .75rem; position: sticky; left: 0; z-index: 3; background: rgba(8,12,22,.96); border-right: 1px solid rgba(255,255,255,.08); }
+        .day-matrix .rate-col { position: sticky; left: 210px; z-index: 3; background: rgba(8,12,22,.96); border-right: 1px solid rgba(255,255,255,.08); }
+        .day-matrix-header .task-col, .day-matrix-header .rate-col { z-index: 6; }
+        .matrix-day-label { font: 700 9px 'JetBrains Mono', monospace; color: #64748b; }
+        .matrix-day-label.today { color: #a78bfa; }
+        .matrix-task-title { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; font-weight: 600; color: #e2e8f0; }
+        .matrix-task-meta { display: block; margin-top: 2px; font: 600 8px 'JetBrains Mono', monospace; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+        .matrix-day-cell { width: 20px; height: 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.025); transition: transform .15s ease, box-shadow .15s ease; }
+        .matrix-day-cell:hover { transform: scale(1.15); box-shadow: 0 0 14px rgba(129,140,248,.22); }
+        .matrix-day-cell.done { background: linear-gradient(135deg, #34d399, #10b981); border-color: rgba(52,211,153,.5); box-shadow: 0 0 10px rgba(16,185,129,.14); }
+        .matrix-day-cell.missed { background: linear-gradient(135deg, #fb7185, #e11d48); border-color: rgba(251,113,133,.45); box-shadow: 0 0 10px rgba(244,63,94,.12); }
+        .matrix-day-cell.future { background: rgba(255,255,255,.015); border-style: dashed; opacity: .65; }
+        .matrix-day-cell.empty { background: rgba(100,116,139,.08); border-color: rgba(100,116,139,.14); }
+        .matrix-rate { font: 800 10px 'JetBrains Mono', monospace; padding: 4px 7px; border-radius: 7px; background: rgba(99,102,241,.10); color: #a5b4fc; border: 1px solid rgba(129,140,248,.16); }
+        .matrix-legend { display:flex; flex-wrap:wrap; gap:.55rem 1rem; padding:.7rem .8rem; border-top:1px solid rgba(255,255,255,.06); color:#64748b; font:600 9px 'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.04em; }
+        .matrix-legend span { display:inline-flex; align-items:center; gap:.35rem; }
+        .matrix-legend i { width:9px; height:9px; border-radius:3px; display:inline-block; border:1px solid rgba(255,255,255,.08); }
+        @media (max-width: 768px) { .day-matrix { grid-template-columns: 175px 72px repeat(var(--matrix-days), 31px); } .day-matrix .rate-col { left: 175px; } .matrix-task-title { max-width: 150px; } }
+
+        /* ─── EXECUTIVE MATRIX UI ───────────────────────────────────────── */
+        .matrix-shell {
+            position: relative;
+            background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 18px 45px rgba(0,0,0,.18);
+        }
+        .matrix-scroll { overflow: hidden; }
+        .day-matrix {
+            display: grid;
+            grid-template-columns: minmax(190px, 1.8fr) 54px repeat(var(--matrix-days), minmax(18px, 1fr));
+            min-width: 0;
+            background: rgba(5,8,15,.35);
+        }
+        .day-matrix > * { min-width: 0; }
+        .day-matrix-header {
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            background: rgba(15,23,42,.58);
+            position: sticky;
+            top: 0;
+            z-index: 3;
+        }
+        .day-matrix-header.task-col,
+        .day-matrix-header.rate-col { justify-content: flex-start; padding: 0 12px; }
+        .day-matrix-header.task-col { left: 0; z-index: 5; }
+        .day-matrix-header.rate-col { z-index: 5; }
+        .matrix-day-label {
+            width: 22px; height: 22px; display:flex; align-items:center; justify-content:center;
+            border-radius: 7px; color:#64748b; font: 700 9px/1 'JetBrains Mono',monospace;
+        }
+        .matrix-day-label.today { color:#fff; background:rgba(99,102,241,.22); box-shadow:0 0 0 1px rgba(129,140,248,.45), 0 0 14px rgba(99,102,241,.2); }
+        .day-matrix .task-col, .day-matrix .rate-col {
+            display:flex; align-items:center; min-height:52px;
+            border-bottom:1px solid rgba(255,255,255,.045);
+            background:rgba(10,14,24,.92);
+            z-index:2;
+        }
+        .day-matrix .task-col { padding:7px 12px; position:sticky; left:0; }
+        .day-matrix .rate-col { justify-content:center; position:sticky; left:190px; }
+        .matrix-task-title { color:#e2e8f0; font-size:11px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .matrix-task-meta { display:block; margin-top:3px; color:#64748b; font:600 8px/1.1 'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.04em; }
+        .matrix-rate { min-width:40px; text-align:center; padding:5px 6px; border-radius:8px; color:#a5b4fc; background:rgba(99,102,241,.10); border:1px solid rgba(129,140,248,.16); font:800 9px 'JetBrains Mono',monospace; }
+        .matrix-day-cell-wrap { display:flex; align-items:center; justify-content:center; min-height:52px; border-bottom:1px solid rgba(255,255,255,.045); }
+        .matrix-day-cell { width:14px; height:14px; border-radius:4px; border:1px solid transparent; transition:transform .16s ease, box-shadow .16s ease; }
+        .matrix-day-cell:hover { transform:scale(1.3); box-shadow:0 0 0 3px rgba(255,255,255,.05); }
+        .matrix-day-cell.done { background:linear-gradient(135deg,#34d399,#10b981); box-shadow:0 0 10px rgba(16,185,129,.16); }
+        .matrix-day-cell.missed { background:linear-gradient(135deg,#fb7185,#e11d48); box-shadow:0 0 10px rgba(244,63,94,.14); }
+        .matrix-day-cell.empty { background:rgba(100,116,139,.12); border-color:rgba(148,163,184,.09); }
+        .matrix-day-cell.future { background:transparent; border:1px dashed rgba(100,116,139,.28); }
+        .matrix-legend { display:flex; align-items:center; flex-wrap:wrap; gap:14px; padding:12px 14px; border-top:1px solid rgba(255,255,255,.05); background:rgba(2,6,23,.34); color:#64748b; font:600 8px 'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.035em; }
+        .matrix-legend span { display:flex; align-items:center; gap:6px; }
+        .matrix-legend i { width:8px; height:8px; border-radius:3px; border:1px solid rgba(255,255,255,.08); display:inline-block; }
+        .matrix-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
+        .matrix-stat { padding:9px 10px; border:1px solid rgba(255,255,255,.055); border-radius:10px; background:rgba(255,255,255,.018); }
+        .matrix-stat-label { display:block; color:#64748b; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+        .matrix-stat-value { display:block; margin-top:3px; color:#f8fafc; font:800 12px 'JetBrains Mono',monospace; }
+        @media (max-width: 1023px) {
+            .day-matrix { grid-template-columns: minmax(150px,1.6fr) 48px repeat(var(--matrix-days), minmax(15px,1fr)); }
+            .day-matrix .rate-col { left:150px; }
+            .matrix-day-cell { width:11px; height:11px; border-radius:3px; }
+        }
+        @media (max-width: 640px) {
+            .day-matrix { grid-template-columns: 1fr; }
+            .day-matrix-header.task-col, .day-matrix-header.rate-col { display:none; }
+            .day-matrix .task-col, .day-matrix .rate-col { position:static; min-height:auto; }
+            .day-matrix .task-col { padding:10px 12px 4px; border-bottom:0; }
+            .day-matrix .rate-col { justify-content:flex-start; padding:0 12px 7px; border-bottom:0; }
+            .day-matrix .matrix-day-cell-wrap { min-height:24px; }
+            .day-matrix .matrix-day-cell-wrap:nth-child(n+3) { display:flex; }
+            .matrix-summary { grid-template-columns:1fr; }
+        }
+        /* ─── FINAL PREMIUM ANALYTICS PASS ─────────────────────────────── */
+        .analytics-glow { position:relative; isolation:isolate; }
+        .analytics-glow::before { content:""; position:absolute; width:280px; height:180px; top:-90px; right:-50px; background:radial-gradient(circle,rgba(99,102,241,.18),transparent 68%); filter:blur(18px); pointer-events:none; z-index:-1; }
+        .chart-container { position:relative; background:linear-gradient(145deg,rgba(15,23,42,.72),rgba(2,6,23,.58)); border:1px solid rgba(148,163,184,.10); border-radius:18px; padding:18px 18px 12px; box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 20px 50px rgba(0,0,0,.22); overflow:hidden; }
+        .chart-container::after { content:""; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,.025),transparent 35%,rgba(99,102,241,.025)); pointer-events:none; }
+        .matrix-premium { position:relative; border:1px solid rgba(148,163,184,.11); border-radius:20px; overflow:hidden; background:linear-gradient(145deg,rgba(15,23,42,.72),rgba(2,6,23,.72)); box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 22px 55px rgba(0,0,0,.24); }
+        .matrix-premium::before { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 80% 0%,rgba(99,102,241,.08),transparent 30%),radial-gradient(circle at 0% 100%,rgba(16,185,129,.045),transparent 26%); }
+        .matrix-scroll { overflow:visible !important; max-height:none !important; }
+        .day-matrix { position:relative; z-index:1; display:grid; grid-template-columns:minmax(225px,2.4fr) 62px repeat(var(--matrix-days),minmax(0,1fr)); width:100%; min-width:0; background:transparent; }
+        .day-matrix > div { min-width:0; }
+        .day-matrix-header { height:48px; background:rgba(15,23,42,.78); border-bottom:1px solid rgba(148,163,184,.09); backdrop-filter:blur(16px); }
+        .day-matrix .task-col,.day-matrix .rate-col { min-height:58px; background:rgba(7,12,22,.76); border-bottom:1px solid rgba(148,163,184,.055); }
+        .day-matrix .task-col { padding:8px 14px; position:sticky; left:0; z-index:3; }
+        .day-matrix .rate-col { position:sticky; left:225px; z-index:3; }
+        .day-matrix-header.task-col,.day-matrix-header.rate-col { background:rgba(15,23,42,.94); z-index:7; }
+        .matrix-day-cell-wrap { min-height:58px; border-bottom:1px solid rgba(148,163,184,.045); position:relative; }
+        .matrix-day-cell-wrap:nth-child(even) { background:rgba(255,255,255,.008); }
+        .matrix-day-cell { width:15px; height:15px; border-radius:5px; }
+        .matrix-day-cell.done { box-shadow:0 0 13px rgba(16,185,129,.20),inset 0 1px 0 rgba(255,255,255,.22); }
+        .matrix-day-cell.missed { box-shadow:0 0 13px rgba(244,63,94,.18),inset 0 1px 0 rgba(255,255,255,.18); }
+        .matrix-day-cell.empty { background:rgba(71,85,105,.10); border:1px solid rgba(148,163,184,.08); }
+        .matrix-day-cell.future { border-color:rgba(100,116,139,.24); opacity:.75; }
+        .matrix-day-label { width:25px; height:25px; border-radius:8px; color:#718096; font-size:9px; }
+        .matrix-day-label.today { color:#fff; background:linear-gradient(135deg,#6366f1,#8b5cf6); box-shadow:0 5px 18px rgba(99,102,241,.28),0 0 0 1px rgba(165,180,252,.45); }
+        .matrix-task-title { font-size:11px; font-weight:700; color:#f1f5f9; }
+        .matrix-task-meta { color:#64748b; font-size:8px; }
+        .matrix-rate { min-width:42px; padding:6px 7px; border-radius:9px; background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.09)); border-color:rgba(129,140,248,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+        .matrix-legend { position:relative; z-index:1; padding:13px 15px; background:rgba(2,6,23,.48); border-top:1px solid rgba(148,163,184,.07); }
+        .matrix-summary { position:relative; z-index:1; margin:0; padding:10px; grid-template-columns:repeat(3,minmax(0,1fr)); background:rgba(2,6,23,.25); border-top:1px solid rgba(148,163,184,.055); }
+        .matrix-stat { padding:11px 12px; border-radius:12px; background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012)); border-color:rgba(148,163,184,.075); }
+        .matrix-stat-value { font-size:13px; }
+        .trend-shell { position:relative; }
+        .trend-shell .trend-meta { display:flex; align-items:center; gap:7px; }
+        .trend-dot { width:7px; height:7px; border-radius:50%; background:#34d399; box-shadow:0 0 12px rgba(52,211,153,.65); }
+        .trend-empty-state { display:flex; align-items:center; justify-content:center; position:absolute; inset:36px 12px 8px; color:#64748b; font:600 10px 'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.04em; pointer-events:none; }
+        @media (max-width:1100px) { .day-matrix { grid-template-columns:minmax(190px,2fr) 56px repeat(var(--matrix-days),minmax(0,1fr)); } .day-matrix .rate-col { left:190px; } }
+        @media (max-width:760px) { .day-matrix { grid-template-columns:minmax(150px,1.7fr) 50px repeat(var(--matrix-days),minmax(0,1fr)); } .day-matrix .rate-col { left:150px; } .matrix-day-cell { width:11px; height:11px; border-radius:4px; } .matrix-day-label { width:22px; height:22px; } }
+        @media (max-width:640px) { .day-matrix { grid-template-columns:1fr; } .day-matrix-header.task-col,.day-matrix-header.rate-col { display:none; } .day-matrix .task-col,.day-matrix .rate-col { position:static; } .day-matrix .task-col { padding:10px 13px 4px; } .day-matrix .rate-col { justify-content:flex-start; padding:0 13px 7px; } .matrix-day-cell-wrap { min-height:25px; } .matrix-summary { grid-template-columns:1fr; } }
+
+    </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen flex flex-col justify-between">
+
+    <div class="max-w-[1700px] w-full mx-auto space-y-6">
+
+        <!-- HEADER / NAVBAR TERMINAL -->
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center glass-panel p-4 md:px-6 rounded-2xl gap-4">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <span class="text-white font-black text-lg">⚡</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg font-bold tracking-tight text-white">CADENZA</h1>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-mono flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping"></span> AI NEURAL CORE
+                        </span>
+                    </div>
+                    <p id="current-month-year-label" class="text-xs font-medium text-slate-400">September 2026</p>
+                </div>
+            </div>
+
+            <!-- VIEW NAVIGATION TAB SWITCHER -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-white/5 self-stretch sm:self-auto justify-center">
+                <button id="tab-planner" class="tab-btn active text-xs font-semibold px-4 py-2 rounded-lg text-slate-400 border border-transparent transition-all flex items-center gap-2 cursor-pointer">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Workspace
+                </button>
+                <button id="tab-analytics" class="tab-btn text-xs font-semibold px-4 py-2 rounded-lg text-slate-400 border border-transparent transition-all flex items-center gap-2 cursor-pointer">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    Deep AI Diagnostics
+                </button>
+            </div>
+
+            <!-- CONTROLS & LIVE CLOCK -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                <select id="category-filter" class="bg-slate-900/80 border border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 cursor-pointer">
+                    <option value="all">All Categories</option>
+                    <option value="General">General Tasks</option>
+                    <option value="Personal">Personal Goals</option>
+                    <option value="Work">Work / Core</option>
+                </select>
+                <div class="flex items-center space-x-2 bg-slate-900/80 border border-white/10 px-3.5 py-2 rounded-xl font-mono">
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span id="live-clock" class="text-xs font-semibold text-slate-300">00:00:00 AM</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW 1: WORKSPACE PLANNER TERMINAL -->
+        <div id="planner-view" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- COLUMN 1: TIMELINE (Left - 3 Cols) -->
+            <aside class="lg:col-span-3 space-y-3">
+                <div class="px-1 flex justify-between items-center">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Timeline</h2>
+                    <div class="flex items-center gap-1 bg-slate-900/60 border border-white/10 rounded-lg p-0.5 font-mono">
+                        <button id="prev-month-btn" class="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-xs cursor-pointer">◀</button>
+                        <span id="calendar-month-indicator" class="text-[10px] font-bold text-blue-400 px-2 uppercase">SEP 2026</span>
+                        <button id="next-month-btn" class="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-xs cursor-pointer">▶</button>
+                    </div>
+                </div>
+
+                <div id="monthly-day-list" class="space-y-1.5 max-h-[640px] overflow-y-auto pr-1 custom-scroll">
+                    <!-- Date cards injected dynamically -->
+                </div>
+            </aside>
+
+            <!-- COLUMN 2: ACTIVE DAY WORKSPACE (Center - 5 Cols) -->
+            <main class="lg:col-span-5 glass-panel rounded-2xl p-6 space-y-5 shadow-xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-4 gap-4">
+                    <div>
+                        <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest font-mono">Active Workspace</span>
+                        <h2 id="active-day-title" class="text-lg font-bold text-white tracking-tight mt-0.5">SEPTEMBER 1, TUESDAY</h2>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 bg-slate-900/60 border border-white/10 px-3 py-1.5 rounded-xl">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">Sleep:</span>
+                            <input type="text" id="sleep-input" placeholder="--h" class="text-xs font-bold text-white bg-transparent outline-none w-10 text-center font-mono">
+                        </div>
+
+                        <button id="add-task-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                            Add Task
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC TASK ROWS CONTAINER -->
+                <div id="task-container" class="space-y-2.5 min-h-[260px] max-h-[480px] overflow-y-auto pr-1 custom-scroll">
+                    <!-- Tasks injected dynamically -->
+                </div>
+            </main>
+
+            <!-- COLUMN 3: DAILY METRICS (Right - 4 Cols) -->
+            <section class="lg:col-span-4 space-y-6">
+
+                <!-- Daily Completion Donut Chart Card -->
+                <div class="glass-panel rounded-2xl p-6 flex flex-col items-center relative overflow-hidden">
+                    <div class="w-full flex justify-between items-center mb-4">
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Daily Execution Rate</h2>
+                        <span id="daily-completion-badge" class="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">0%</span>
+                    </div>
+
+                    <div class="relative w-36 h-36 flex items-center justify-center">
+                        <canvas id="dailyDonutChart"></canvas>
+                        <div class="absolute text-center flex flex-col">
+                            <span id="donutPercentText" class="text-2xl font-extrabold text-white font-mono">0%</span>
+                            <span class="text-[9px] text-slate-400 uppercase font-medium">Completed</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full mt-4 text-center border-t border-white/5 pt-3">
+                        <p id="completionStatusSubtext" class="text-xs text-slate-400 font-medium">0 of 0 tasks completed</p>
+                    </div>
+                </div>
+
+                <!-- Quick stats card -->
+                <div class="glass-panel rounded-2xl p-5 space-y-2 border border-white/5">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">📊 Day Snapshot</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-900/60 rounded-xl px-3 py-2 text-center">
+                            <span class="text-slate-500 block text-[9px] uppercase">Planned</span>
+                            <span id="day-planned-count" class="text-white font-bold font-mono text-base">0</span>
+                        </div>
+                        <div class="bg-slate-900/60 rounded-xl px-3 py-2 text-center">
+                            <span class="text-slate-500 block text-[9px] uppercase">Done</span>
+                            <span id="day-done-count" class="text-emerald-400 font-bold font-mono text-base">0</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+        <!-- VIEW 2: ADVANCED ANALYTICS & DEEP AI DIAGNOSTICS -->
+        <div id="analytics-view" class="hidden space-y-6">
+
+            <!-- TOP EXECUTIVE KPI METRIC CARDS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-blue-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Monthly Execution Efficiency</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span id="analytics-monthly-yield" class="text-3xl font-extrabold text-white font-mono">0%</span>
+                        <span id="analytics-total-tasks-badge" class="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">0 tasks</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-purple-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">AI Attention Index</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span id="analytics-ai-alerts-count" class="text-3xl font-extrabold text-purple-400 font-mono">0</span>
+                        <span class="text-xs font-bold text-purple-400">Bottlenecks Flagged</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-emerald-500">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Active Streak</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span id="analytics-streak-days" class="text-3xl font-extrabold text-emerald-400 font-mono">0 Days</span>
+                        <span class="text-xs font-bold text-emerald-400">⚡ Verified</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS ROW (Weekly + Monthly Trend) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <div class="lg:col-span-7 glass-panel rounded-2xl p-6 space-y-4">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Weekly Productivity Matrix</h3>
+                        <span class="text-[10px] text-slate-400 font-mono">Planned vs Completed</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="weeklyBarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 glass-panel rounded-2xl p-6 space-y-4 analytics-glow trend-shell">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                        <div class="trend-meta"><span class="trend-dot"></span><h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Completion Trend</h3></div>
+                        <span class="text-[10px] text-emerald-300/80 font-mono font-semibold">DAILY EFFICIENCY</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- AI OBJECTIVE & FREQUENCY BREAKDOWN (with chart + insights + matrix) -->
+            <div class="glass-panel rounded-2xl p-6 space-y-6">
+                <div class="flex justify-between items-center border-b border-white/5 pb-4">
+                    <div>
+                        <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider">AI Objective & Frequency Breakdown</h2>
+                        <h3 class="text-sm font-semibold text-white mt-0.5">Recurring Task & Bottleneck Analysis</h3>
+                    </div>
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider bg-white/5 px-3 py-1 rounded-lg border border-white/5 font-mono">Current Month</span>
+                </div>
+
+                <!-- Two columns: chart + insights -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Frequency Chart - Enhanced Professional UI -->
+                    <div class="lg:col-span-7 space-y-3">
+                        <div class="chart-container h-72 relative">
+                            <canvas id="taskFrequencyChart"></canvas>
+                        </div>
+                        <div class="flex justify-center gap-6 text-xs text-slate-400 font-mono">
+                            <span><span class="inline-block w-3 h-3 rounded-full bg-gradient-to-r from-indigo-400 to-indigo-600 mr-1"></span> Completed</span>
+                            <span><span class="inline-block w-3 h-3 rounded-full bg-gradient-to-r from-rose-400 to-rose-600 mr-1"></span> Missed</span>
+                            <span class="info-note">📌 Missed = occurrences not completed (past days only)</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: AI Insights & Recommendations -->
+                    <div class="lg:col-span-5 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span> AI Neural Insights
+                        </h4>
+                        <div id="ai-insights-container" class="space-y-2 max-h-[280px] overflow-y-auto pr-1 custom-scroll">
+                            <!-- Insights injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Task Frequency Matrix (Monthly-based) - Enhanced with total days -->
+                <div class="border-t border-white/5 pt-5 mt-2">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                        <div><h4 class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">📋 Detailed Task Frequency Matrix</h4><p class="text-[9px] text-slate-600 mt-1">Daily consistency map across the full calendar month</p></div>
+                        <div class="flex items-center gap-3">
+                            <span class="info-note text-[9px]">Total days this month: <span id="total-days-month" class="font-bold text-white">30</span></span>
+                            <span class="info-note text-[9px]">30-day view · hover cells for status</span>
+                        </div>
+                    </div>
+                    <div id="task-frequency-matrix" class="matrix-premium">
+                        <!-- Dynamic rows injected here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SYSTEM PORTABILITY FOOTER -->
+    <footer class="mt-8 flex justify-end max-w-[1700px] w-full mx-auto">
+        <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center gap-4 font-mono">
+            <span class="text-[10px] text-slate-400 uppercase border-r border-white/10 pr-4">Cadenza AI Hub v3.2</span>
+            <button id="export-btn" class="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-blue-400 transition-colors cursor-pointer">
+                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export JSON
+            </button>
+            <button id="import-btn" class="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-indigo-400 transition-colors cursor-pointer">
+                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Import JSON
+            </button>
+            <input type="file" id="import-file-input" class="hidden" accept=".json">
+        </div>
+    </footer>
+
+    <!-- ENGINE ORCHESTRATION & AI ANALYTICS LOGIC (Fully fixed) -->
+    <script>
+        let state = {
+            selectedDateStr: "",
+            tasksByDay: {},
+            sleepByDay: {},
+            activeFilter: "all",
+            activeTab: "planner",
+            viewYear: new Date().getFullYear(),
+            viewMonth: new Date().getMonth()
+        };
+
+        let dailyDonutChartInstance = null;
+        let weeklyBarChartInstance = null;
+        let monthlyTrendChartInstance = null;
+        let taskFrequencyChartInstance = null;
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+            "November", "December"
+        ];
+        const explicitWeekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const shortWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+        // ─── HELPERS ──────────────────────────────────────────────────────────
+        function todayStr() {
+            const d = new Date();
+            return formatDateKey(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+
+        function isDateOnOrBefore(dateKey, limitKey) {
+            return dateKey <= limitKey;
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        // ─── INIT ─────────────────────────────────────────────────────────────
+        function initApp() {
+            const now = new Date();
+            state.viewYear = now.getFullYear();
+            state.viewMonth = now.getMonth();
+            state.selectedDateStr = formatDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+
+            document.getElementById('current-month-year-label').innerText = `${monthNames[state.viewMonth]} ${state.viewYear}`;
+
+            // Show total days in month
+            const totalDays = getDaysInMonth(state.viewYear, state.viewMonth);
+            document.getElementById('total-days-month').innerText = totalDays;
+
+            const savedData = localStorage.getItem('cadenza_flow_planner_tasks');
+            const savedSleep = localStorage.getItem('cadenza_flow_planner_sleep');
+
+            try { state.tasksByDay = savedData ? JSON.parse(savedData) : {}; } catch (e) { state.tasksByDay = {}; }
+            try { state.sleepByDay = savedSleep ? JSON.parse(savedSleep) : {}; } catch (e) { state.sleepByDay = {}; }
+
+            setupClock();
+            buildMonthlyCalendarList(state.viewYear, state.viewMonth);
+            selectDay(state.selectedDateStr);
+            setupEventListeners();
+            initCharts();
+            updateAnalytics();
+            runAIAnalyticsEngine();
+        }
+
+        function formatDateKey(year, month, day) {
+            return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('cadenza_flow_planner_tasks', JSON.stringify(state.tasksByDay));
+            runAIAnalyticsEngine();
+            if (state.activeTab === 'analytics') renderAdvancedAnalytics();
+            updateAnalytics();
+        }
+
+        function saveSleepToLocalStorage() {
+            localStorage.setItem('cadenza_flow_planner_sleep', JSON.stringify(state.sleepByDay));
+        }
+
+        function setupClock() {
+            const updateClock = () => {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                document.getElementById('live-clock').innerText = `${hours}:${minutes}:${seconds} ${ampm}`;
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            const plannerView = document.getElementById('planner-view');
+            const analyticsView = document.getElementById('analytics-view');
+            const tabPlannerBtn = document.getElementById('tab-planner');
+            const tabAnalyticsBtn = document.getElementById('tab-analytics');
+
+            if (tabName === 'planner') {
+                plannerView.classList.remove('hidden');
+                analyticsView.classList.add('hidden');
+                tabPlannerBtn.classList.add('active');
+                tabAnalyticsBtn.classList.remove('active');
+                updateAnalytics();
+            } else {
+                plannerView.classList.add('hidden');
+                analyticsView.classList.remove('hidden');
+                tabAnalyticsBtn.classList.add('active');
+                tabPlannerBtn.classList.remove('active');
+                renderAdvancedAnalytics();
+                requestAnimationFrame(() => {
+                    if (monthlyTrendChartInstance) monthlyTrendChartInstance.resize();
+                    if (weeklyBarChartInstance) weeklyBarChartInstance.resize();
+                    if (taskFrequencyChartInstance) taskFrequencyChartInstance.resize();
+                });
+            }
+        }
+
+        // ─── CALENDAR ────────────────────────────────────────────────────────
+        function buildMonthlyCalendarList(year, month) {
+            const listContainer = document.getElementById('monthly-day-list');
+            listContainer.innerHTML = '';
+            document.getElementById('calendar-month-indicator').innerText = `${monthNames[month].slice(0, 3).toUpperCase()} ${year}`;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(year, month, d);
+                const dayNameShort = dateObj.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                const dateKey = formatDateKey(year, month, d);
+
+                const dayTasks = state.tasksByDay[dateKey] || [];
+                const taskCount = dayTasks.length;
+                const completedCount = dayTasks.filter(t => t.completed).length;
+
+                const dayCard = document.createElement('div');
+                dayCard.id = `day-card-${dateKey}`;
+                dayCard.className =
+                    `day-selector-item glass-card p-2.5 rounded-xl flex justify-between items-center cursor-pointer font-mono`;
+
+                let badgeMarkup =
+                '<span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>';
+                let indicatorBg = 'bg-transparent';
+
+                if (taskCount > 0) {
+                    const ratio = completedCount / taskCount;
+                    if (ratio === 1) indicatorBg = 'bg-emerald-400';
+                    else if (ratio > 0) indicatorBg = 'bg-blue-400';
+                    else indicatorBg = 'bg-slate-600';
+                    badgeMarkup =
+                        `<span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5">${completedCount}/${taskCount}</span>`;
+                }
+
+                dayCard.innerHTML = `
+                        <div class="flex flex-col text-left">
+                            <span class="text-[9px] font-bold text-slate-500">${dayNameShort}</span>
+                            <span class="text-xs font-extrabold text-slate-200 mt-0.5">${String(d).padStart(2, '0')}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${badgeMarkup}
+                            <div class="w-1 h-3 rounded-full ${indicatorBg}"></div>
+                        </div>
+                    `;
+
+                dayCard.addEventListener('click', () => selectDay(dateKey));
+                listContainer.appendChild(dayCard);
+            }
+
+            const targetEl = document.getElementById(`day-card-${state.selectedDateStr}`);
+            if (targetEl) targetEl.classList.add('border-purple-500/60', 'bg-white/10');
+        }
+
+        function selectDay(dateKey) {
+            state.selectedDateStr = dateKey;
+
+            document.querySelectorAll('.day-selector-item').forEach(el => {
+                el.classList.remove('border-purple-500/60', 'bg-white/10');
+            });
+
+            const targetEl = document.getElementById(`day-card-${dateKey}`);
+            if (targetEl) {
+                targetEl.classList.add('border-purple-500/60', 'bg-white/10');
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            const parts = dateKey.split('-');
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            document.getElementById('active-day-title').innerText =
+                `${monthNames[dateObj.getMonth()].toUpperCase()} ${parts[2]}, ${explicitWeekdays[dateObj.getDay()].toUpperCase()}`;
+
+            const sleepInput = document.getElementById('sleep-input');
+            sleepInput.value = state.sleepByDay[dateKey] || "";
+
+            renderTasks();
+            updateAnalytics();
+        }
+
+        // ─── TASKS ───────────────────────────────────────────────────────────
+        function renderTasks() {
+            const container = document.getElementById('task-container');
+            container.innerHTML = '';
+
+            const allTasks = state.tasksByDay[state.selectedDateStr] || [];
+            const activeTasks = allTasks.filter(t => state.activeFilter === "all" || t.type === state.activeFilter);
+
+            if (activeTasks.length === 0) {
+                container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-44 text-slate-500 space-y-2">
+                            <svg class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                            <span class="text-xs font-mono uppercase text-slate-500">No tasks logged for this day</span>
+                        </div>`;
+                updateAnalytics();
+                return;
+            }
+
+            activeTasks.forEach(task => {
+                const row = document.createElement('div');
+                let borderStyle = task.completed ? 'border-l-4 border-l-emerald-400 bg-emerald-500/5' :
+                    'border-l-4 border-l-purple-500 bg-white/[0.02]';
+
+                row.className =
+                    `flex items-center justify-between p-3 rounded-xl border border-white/5 transition-all ${borderStyle}`;
+                row.innerHTML = `
+                        <div class="flex items-center space-x-3 flex-1">
+                            <input type="checkbox" class="custom-cb" ${task.completed ? 'checked' : ''} data-id="${task.id}">
+                            <div class="flex items-center gap-2 flex-1 overflow-hidden">
+                                <input type="text" value="${task.text}" class="text-xs font-medium ${task.completed ? 'text-slate-500 line-through' : 'text-slate-200'} bg-transparent outline-none flex-1" data-field="text" data-id="${task.id}">
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${task.type === 'Personal' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : task.type === 'Work' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'} font-mono">${task.type}</span>
+                            </div>
+                        </div>
+                        <button class="delete-task-btn text-slate-600 hover:text-rose-400 p-1 rounded transition-colors cursor-pointer" data-id="${task.id}">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                    `;
+                container.appendChild(row);
+            });
+
+            updateAnalytics();
+        }
+
+        // ─── AI ANALYTICS ENGINE (Date‑aware) ────────────────────────────
+        function runAIAnalyticsEngine() {
+            const currentMonthPrefix = `${state.viewYear}-${String(state.viewMonth + 1).padStart(2, '0')}`;
+            const today = todayStr();
+            const taskMap = {};
+
+            const sortedDates = Object.keys(state.tasksByDay).sort();
+            sortedDates.forEach(dKey => {
+                if (!dKey.startsWith(currentMonthPrefix)) return;
+                if (!isDateOnOrBefore(dKey, today)) return;
+
+                const tasks = state.tasksByDay[dKey] || [];
+                tasks.forEach(t => {
+                    const norm = t.text.trim().toLowerCase();
+                    if (!norm || norm.includes('new task')) return;
+                    if (!taskMap[norm]) {
+                        taskMap[norm] = { title: t.text.trim(), type: t.type || 'General', occurrences: 0,
+                            done: 0 };
+                    }
+                    taskMap[norm].occurrences++;
+                    if (t.completed) taskMap[norm].done++;
+                });
+            });
+
+            const taskList = Object.values(taskMap);
+            const bottleneckCount = taskList.filter(item => item.done < item.occurrences).length;
+
+            const aiBadge = document.getElementById('analytics-ai-alerts-count');
+            if (aiBadge) aiBadge.innerText = bottleneckCount;
+
+            window.__aiTaskFrequencyData = taskList;
+            generateAIInsights(taskList);
+        }
+
+        function generateAIInsights(taskList) {
+            const container = document.getElementById('ai-insights-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (taskList.length === 0) {
+                container.innerHTML =
+                    `<div class="text-xs text-slate-400 p-3 text-center">No task data available for AI insights.</div>`;
+                return;
+            }
+
+            const sorted = [...taskList].sort((a, b) => (b.occurrences - b.done) - (a.occurrences - a.done));
+            const missedTasks = sorted.filter(item => item.done < item.occurrences);
+            const fullyDone = sorted.filter(item => item.done === item.occurrences && item.occurrences > 0);
+
+            let insights = [];
+
+            if (missedTasks.length > 0) {
+                const topMissed = missedTasks.slice(0, 3);
+                topMissed.forEach(item => {
+                    const missed = item.occurrences - item.done;
+                    insights.push({
+                        severity: missed >= 3 ? 'high' : (missed >= 2 ? 'medium' : 'low'),
+                        message: `Task "<strong class="text-white">${item.title}</strong>" missed <strong class="text-rose-400">${missed}x</strong> this month. ${missed >= 3 ? '⚠️ Critical: Consider delegating or splitting into smaller steps.' : 'Recommend prioritizing it early in the day.'}`
+                    });
+                });
+            }
+
+            const totalTasks = taskList.reduce((sum, i) => sum + i.occurrences, 0);
+            const totalDone = taskList.reduce((sum, i) => sum + i.done, 0);
+            const overallRate = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
+
+            if (overallRate < 70) {
+                insights.push({
+                    severity: 'medium',
+                    message: `Overall completion rate is <strong class="text-amber-400">${overallRate}%</strong> (${totalDone}/${totalTasks}). Aim for 80%+ by focusing on high-frequency tasks.`
+                });
+            } else if (overallRate >= 90) {
+                insights.push({
+                    severity: 'low',
+                    message: `Excellent! ${overallRate}% completion rate. Keep up the momentum.`
+                });
+            }
+
+            if (fullyDone.length > 0) {
+                const topDone = fullyDone.slice(0, 2);
+                topDone.forEach(item => {
+                    insights.push({
+                        severity: 'low',
+                        message: `✅ Task "<strong class="text-emerald-300">${item.title}</strong>" completed every time (${item.occurrences}x). Great consistency!`
+                    });
+                });
+            }
+
+            if (insights.length === 0) {
+                container.innerHTML =
+                    `<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">All tasks are on track. No bottlenecks detected.</div>`;
+                return;
+            }
+
+            insights.slice(0, 5).forEach(insight => {
+                const card = document.createElement('div');
+                let borderColor = 'border-rose-500';
+                let bg = 'bg-rose-500/10';
+                if (insight.severity === 'medium') {
+                    borderColor = 'border-amber-500';
+                    bg = 'bg-amber-500/10';
+                } else if (insight.severity === 'low') {
+                    borderColor = 'border-emerald-500';
+                    bg = 'bg-emerald-500/10';
+                }
+                card.className =
+                    `insight-card p-3 rounded-xl ${bg} border border-white/5 text-xs text-slate-300 flex items-start gap-2 ${borderColor} border-l-4`;
+                card.innerHTML = `
+                        <span class="mt-0.5">${insight.severity === 'high' ? '🔴' : insight.severity === 'medium' ? '🟡' : '🟢'}</span>
+                        <span>${insight.message}</span>
+                    `;
+                container.appendChild(card);
+            });
+        }
+
+        // ─── ANALYTICS TAB RENDER (Date‑aware) ─────────────────────────────
+        function renderAdvancedAnalytics() {
+            const prefix = `${state.viewYear}-${String(state.viewMonth + 1).padStart(2, '0')}`;
+            const today = todayStr();
+            let totalMonthTasks = 0;
+            let totalMonthCompleted = 0;
+
+            const weeklyPlanned = [0, 0, 0, 0, 0, 0, 0];
+            const weeklyCompleted = [0, 0, 0, 0, 0, 0, 0];
+
+            const daysInMonth = getDaysInMonth(state.viewYear, state.viewMonth);
+            const lineLabels = Array.from({length: daysInMonth}, (_, i) => `Day ${i + 1}`);
+            const lineData = Array(daysInMonth).fill(null);
+            let trendHasData = false;
+
+            const sortedDateKeys = Object.keys(state.tasksByDay).sort();
+            const taskMap = {};
+
+            // Build the trend from every calendar day, not only days that contain tasks.
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = formatDateKey(state.viewYear, state.viewMonth, day);
+                const tasks = state.tasksByDay[dateKey] || [];
+                const dateParts = dateKey.split('-');
+                const dateObj = new Date(state.viewYear, state.viewMonth, day);
+                const dayOfWeek = dateObj.getDay();
+                const isPastOrToday = isDateOnOrBefore(dateKey, today);
+                let dayDone = 0;
+
+                if (isPastOrToday && tasks.length > 0) {
+                    trendHasData = true;
+                    lineData[day - 1] = Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100);
+                }
+
+                if (!isPastOrToday) continue;
+
+                tasks.forEach(t => {
+                    totalMonthTasks++;
+                    weeklyPlanned[dayOfWeek]++;
+
+                    if (t.completed) {
+                        totalMonthCompleted++;
+                        weeklyCompleted[dayOfWeek]++;
+                        dayDone++;
+                    }
+
+                    const norm = t.text.trim().toLowerCase();
+                    if (!norm || norm.includes('new task')) return;
+                    if (!taskMap[norm]) {
+                        taskMap[norm] = { title: t.text.trim(), type: t.type || 'General',
+                            occurrences: 0, done: 0 };
+                    }
+                    taskMap[norm].occurrences++;
+                    if (t.completed) taskMap[norm].done++;
+                });
+
+            }
+
+            // KPIs
+            const overallYield = totalMonthTasks > 0 ? Math.round((totalMonthCompleted / totalMonthTasks) * 100) : 0;
+            document.getElementById('analytics-monthly-yield').innerText = `${overallYield}%`;
+            document.getElementById('analytics-total-tasks-badge').innerText = `${totalMonthCompleted}/${totalMonthTasks} done`;
+
+            // Streak
+            let currentStreak = 0;
+            for (let i = sortedDateKeys.length - 1; i >= 0; i--) {
+                const dKey = sortedDateKeys[i];
+                if (!dKey.startsWith(prefix)) continue;
+                if (!isDateOnOrBefore(dKey, today)) continue;
+                const dTasks = state.tasksByDay[dKey] || [];
+                const dDone = dTasks.filter(t => t.completed).length;
+                if (dTasks.length > 0 && dDone === dTasks.length) {
+                    currentStreak++;
+                } else {
+                    break;
+                }
+            }
+            document.getElementById('analytics-streak-days').innerText = `${currentStreak} Days`;
+
+            // Update weekly bar chart
+            if (weeklyBarChartInstance) {
+                weeklyBarChartInstance.data.datasets[0].data = weeklyPlanned;
+                weeklyBarChartInstance.data.datasets[1].data = weeklyCompleted;
+                weeklyBarChartInstance.update();
+            }
+
+            // Update monthly trend chart
+            if (monthlyTrendChartInstance) {
+                monthlyTrendChartInstance.data.labels = lineLabels;
+                monthlyTrendChartInstance.data.datasets[0].data = lineData;
+                monthlyTrendChartInstance.options.plugins.legend.display = false;
+                monthlyTrendChartInstance.update('none');
+                const trendCanvas = document.getElementById('monthlyTrendChart');
+                if (trendCanvas) {
+                    trendCanvas.style.opacity = trendHasData ? '1' : '0.35';
+                    trendCanvas.setAttribute('aria-label', trendHasData ? 'Daily completion trend for the selected month' : 'No completed tasks logged yet for the selected month');
+                }
+            }
+
+            // Update Task Frequency Chart and Matrix
+            const taskList = Object.values(taskMap);
+            renderTaskFrequencyChart(taskList);
+            renderTaskFrequencyMatrix(taskList);
+            generateAIInsights(taskList);
+
+            const bottleneckCount = taskList.filter(item => item.done < item.occurrences).length;
+            document.getElementById('analytics-ai-alerts-count').innerText = bottleneckCount;
+        }
+
+        // ─── PROFESSIONAL FREQUENCY VISUALIZATION ───────────────────────────
+        function renderTaskFrequencyChart(taskList) {
+            const ctx = document.getElementById('taskFrequencyChart').getContext('2d');
+            if (taskFrequencyChartInstance) taskFrequencyChartInstance.destroy();
+            const top = [...taskList].sort((a,b) => (b.occurrences-a.occurrences) || (b.done-a.done)).slice(0,8);
+            const labels = top.map(item => item.title.length > 26 ? item.title.slice(0,26)+'…' : item.title);
+            const completedData = top.map(item => item.done);
+            const missedData = top.map(item => item.occurrences-item.done);
+            const gradientDone = ctx.createLinearGradient(0,0,520,0);
+            gradientDone.addColorStop(0,'rgba(129,140,248,.95)'); gradientDone.addColorStop(1,'rgba(168,85,247,.95)');
+            const gradientMissed = ctx.createLinearGradient(0,0,520,0);
+            gradientMissed.addColorStop(0,'rgba(251,113,133,.90)'); gradientMissed.addColorStop(1,'rgba(225,29,72,.90)');
+            taskFrequencyChartInstance = new Chart(ctx,{type:'bar',data:{labels,datasets:[
+                {label:'Completed',data:completedData,backgroundColor:gradientDone,borderRadius:7,borderSkipped:false,barThickness:13,maxBarThickness:14},
+                {label:'Missed',data:missedData,backgroundColor:gradientMissed,borderRadius:7,borderSkipped:false,barThickness:13,maxBarThickness:14}
+            ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},layout:{padding:{left:4,right:12,top:4,bottom:2}},plugins:{
+                legend:{position:'top',align:'start',labels:{color:'#cbd5e1',font:{family:'Inter',size:10,weight:'700'},usePointStyle:true,pointStyle:'circle',boxWidth:7,boxHeight:7,padding:16}},
+                tooltip:{backgroundColor:'rgba(8,12,22,.96)',titleColor:'#fff',bodyColor:'#cbd5e1',borderColor:'rgba(255,255,255,.10)',borderWidth:1,cornerRadius:10,padding:11,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} occurrence${c.raw===1?'':'s'}`}}
+            },scales:{x:{stacked:true,beginAtZero:true,grid:{color:'rgba(255,255,255,.045)',drawTicks:false},border:{display:false},ticks:{color:'#64748b',font:{family:'JetBrains Mono',size:9,weight:'600'},stepSize:1,padding:6},title:{display:true,text:'Occurrences',color:'#64748b',font:{family:'Inter',size:9,weight:'700'}}},y:{stacked:true,grid:{display:false},border:{display:false},ticks:{color:'#cbd5e1',font:{family:'Inter',size:10,weight:'600'},padding:8}}},animation:{duration:650,easing:'easeOutCubic'}}});
+        }
+
+        // ─── EXECUTIVE TASK FREQUENCY MATRIX ────────────────────────────────
+        function renderTaskFrequencyMatrix(taskList) {
+            const container = document.getElementById('task-frequency-matrix');
+            container.innerHTML = '';
+            const totalDays = getDaysInMonth(state.viewYear, state.viewMonth);
+            const today = todayStr();
+            const monthPrefix = `${state.viewYear}-${String(state.viewMonth + 1).padStart(2, '0')}`;
+            document.getElementById('total-days-month').innerText = totalDays;
+
+            const shell = document.createElement('div');
+            shell.className = 'matrix-shell';
+
+            if (!taskList.length) {
+                shell.innerHTML = `<div class="p-10 text-center"><div class="text-2xl text-slate-600 mb-2">◌</div><div class="text-xs font-semibold text-slate-400">No recurring task data yet</div><div class="text-[9px] text-slate-600 font-mono mt-1">Your ${totalDays}-day matrix will populate as tasks are logged.</div></div>`;
+                container.appendChild(shell);
+                return;
+            }
+
+            const matrix = document.createElement('div');
+            matrix.className = 'day-matrix';
+            matrix.style.setProperty('--matrix-days', totalDays);
+
+            const taskHead = document.createElement('div');
+            taskHead.className = 'task-col day-matrix-header';
+            taskHead.innerHTML = '<span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Recurring task</span>';
+            matrix.appendChild(taskHead);
+
+            const rateHead = document.createElement('div');
+            rateHead.className = 'rate-col day-matrix-header';
+            rateHead.innerHTML = '<span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Rate</span>';
+            matrix.appendChild(rateHead);
+
+            for (let d = 1; d <= totalDays; d++) {
+                const key = formatDateKey(state.viewYear, state.viewMonth, d);
+                const h = document.createElement('div');
+                h.className = 'day-matrix-header';
+                h.innerHTML = `<span class="matrix-day-label ${key === today ? 'today' : ''}">${d}</span>`;
+                h.title = key === today ? `Day ${d} • Today` : `Day ${d}`;
+                matrix.appendChild(h);
+            }
+
+            [...taskList].sort((a,b) => (b.occurrences-a.occurrences) || (b.done-a.done)).forEach(item => {
+                const title = item.title.trim();
+                const normalized = title.toLowerCase();
+                const rate = item.occurrences ? Math.round(item.done / item.occurrences * 100) : 0;
+
+                const titleCell = document.createElement('div');
+                titleCell.className = 'task-col';
+                titleCell.innerHTML = `<div class="min-w-0"><div class="matrix-task-title" title="${title.replace(/"/g,'&quot;')}">${title}</div><span class="matrix-task-meta">${item.type} · ${item.done}/${item.occurrences} completed</span></div>`;
+                matrix.appendChild(titleCell);
+
+                const rateCell = document.createElement('div');
+                rateCell.className = 'rate-col';
+                rateCell.innerHTML = `<span class="matrix-rate">${rate}%</span>`;
+                matrix.appendChild(rateCell);
+
+                for (let d = 1; d <= totalDays; d++) {
+                    const key = formatDateKey(state.viewYear, state.viewMonth, d);
+                    const tasks = state.tasksByDay[key] || [];
+                    const matching = tasks.filter(t => (t.text || '').trim().toLowerCase() === normalized);
+                    const isFuture = key > today || !key.startsWith(monthPrefix);
+                    const wrap = document.createElement('div');
+                    wrap.className = 'matrix-day-cell-wrap';
+                    const cell = document.createElement('div');
+                    const status = matching.length ? (matching.some(t => t.completed) ? 'Completed' : 'Missed') : (isFuture ? 'Future' : 'Not logged');
+                    cell.className = `matrix-day-cell ${matching.length ? (matching.some(t => t.completed) ? 'done' : 'missed') : (isFuture ? 'future' : 'empty')}`;
+                    cell.title = `${title} • ${key} • ${status}`;
+                    wrap.appendChild(cell);
+                    matrix.appendChild(wrap);
+                }
+            });
+
+            shell.appendChild(matrix);
+            const legend = document.createElement('div');
+            legend.className = 'matrix-legend';
+            legend.innerHTML = `<span><i style="background:#10b981"></i> Completed</span><span><i style="background:#e11d48"></i> Missed</span><span><i style="background:rgba(100,116,139,.18)"></i> Not logged</span><span><i style="background:transparent;border-style:dashed"></i> Future</span><span class="ml-auto">${totalDays} calendar days · ${monthPrefix === today.slice(0,7) ? 'live month' : 'selected month'}</span>`;
+            shell.appendChild(legend);
+
+            const summary = document.createElement('div');
+            summary.className = 'matrix-summary';
+            const totalOccurrences = taskList.reduce((s,i) => s + i.occurrences, 0);
+            const totalDone = taskList.reduce((s,i) => s + i.done, 0);
+            const avg = totalOccurrences ? Math.round(totalDone / totalOccurrences * 100) : 0;
+            summary.innerHTML = `<div class="matrix-stat"><span class="matrix-stat-label">Recurring objectives</span><span class="matrix-stat-value">${taskList.length}</span></div><div class="matrix-stat"><span class="matrix-stat-label">Logged occurrences</span><span class="matrix-stat-value">${totalOccurrences}</span></div><div class="matrix-stat"><span class="matrix-stat-label">Overall consistency</span><span class="matrix-stat-value">${avg}%</span></div>`;
+            shell.appendChild(summary);
+            container.appendChild(shell);
+        }
+
+        // ─── DAILY ANALYTICS UPDATE ──────────────────────────────────────────
+        function updateAnalytics() {
+            const allTasks = state.tasksByDay[state.selectedDateStr] || [];
+            const total = allTasks.length;
+            const completed = allTasks.filter(t => t.completed).length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('donutPercentText').innerText = `${percentage}%`;
+            document.getElementById('completionStatusSubtext').innerText = `${completed} of ${total} tasks completed`;
+            document.getElementById('daily-completion-badge').innerText = `${percentage}%`;
+
+            document.getElementById('day-planned-count').innerText = total;
+            document.getElementById('day-done-count').innerText = completed;
+
+            updateDailyDonutChart(percentage);
+        }
+
+        // ─── CHARTS ────────────────────────────────────────────────────────────
+        function initCharts() {
+            // Donut
+            const ctxDonut = document.getElementById('dailyDonutChart').getContext('2d');
+            dailyDonutChartInstance = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#a855f7', 'rgba(255,255,255,0.05)'],
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    cutout: '82%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { tooltip: { enabled: false } }
+                }
+            });
+
+            // Weekly bar
+            const ctxBar = document.getElementById('weeklyBarChart').getContext('2d');
+            weeklyBarChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: shortWeekdays,
+                    datasets: [{
+                        label: 'Planned',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        borderRadius: 4
+                    }, {
+                        label: 'Completed',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: '#a855f7',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono',
+                                    size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b',
+                                font: { family: 'JetBrains Mono', size: 10 } } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } }
+                    }
+                }
+            });
+
+            // Monthly trend line
+            const ctxLine = document.getElementById('monthlyTrendChart').getContext('2d');
+            monthlyTrendChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: { labels: [], datasets: [{
+                    label: 'Completion Yield %', data: [], borderColor: '#34d399',
+                    backgroundColor: 'rgba(16,185,129,0.10)', fill: true, tension: 0.38,
+                    pointRadius: 2.5, pointHoverRadius: 6, pointBackgroundColor: '#34d399', pointHoverBackgroundColor:'#ffffff', pointHoverBorderColor:'#34d399', pointHoverBorderWidth:3,
+                    pointBorderWidth: 0, spanGaps: true
+                }]},
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    animation: { duration: 500, easing: 'easeOutCubic' },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#64748b', maxTicksLimit: 10, font: { family: 'JetBrains Mono', size: 9, weight: '600' } } },
+                        y: { min: 0, max: 100, border: { display: false }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', stepSize: 25, callback: v => v + '%', font: { family: 'JetBrains Mono', size: 9 } } }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor:'rgba(8,12,22,.96)', borderColor:'rgba(255,255,255,.09)', borderWidth:1, cornerRadius:10, padding:10, displayColors:false, callbacks:{ label:c=>` ${c.raw}% completion` } } }
+                }
+            });
+        }
+
+        function updateDailyDonutChart(percentage) {
+            if (!dailyDonutChartInstance) return;
+            dailyDonutChartInstance.data.datasets[0].data = [percentage, 100 - percentage];
+            dailyDonutChartInstance.update();
+        }
+
+        // ─── EVENT LISTENERS ──────────────────────────────────────────────────
+        function setupEventListeners() {
+            document.getElementById('tab-planner').addEventListener('click', () => switchTab('planner'));
+            document.getElementById('tab-analytics').addEventListener('click', () => switchTab('analytics'));
+
+            document.getElementById('prev-month-btn').addEventListener('click', () => {
+                state.viewMonth--;
+                if (state.viewMonth < 0) { state.viewMonth = 11;
+                    state.viewYear--; }
+                buildMonthlyCalendarList(state.viewYear, state.viewMonth);
+                // Update total days
+                document.getElementById('total-days-month').innerText = getDaysInMonth(state.viewYear, state.viewMonth);
+                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); }); }
+            });
+
+            document.getElementById('next-month-btn').addEventListener('click', () => {
+                state.viewMonth++;
+                if (state.viewMonth > 11) { state.viewMonth = 0;
+                    state.viewYear++; }
+                buildMonthlyCalendarList(state.viewYear, state.viewMonth);
+                document.getElementById('total-days-month').innerText = getDaysInMonth(state.viewYear, state.viewMonth);
+                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); }); }
+            });
+
+            document.getElementById('add-task-btn').addEventListener('click', () => {
+                if (!state.tasksByDay[state.selectedDateStr]) state.tasksByDay[state.selectedDateStr] = [];
+
+                const activeTasks = state.tasksByDay[state.selectedDateStr];
+                const newId = activeTasks.length > 0 ? Math.max(...activeTasks.map(t => t.id)) + 1 : 1;
+                const categories = ["General", "Personal", "Work"];
+                const assignedType = categories[activeTasks.length % 3];
+
+                activeTasks.push({
+                    id: newId,
+                    text: "New task objective...",
+                    completed: false,
+                    type: assignedType
+                });
+
+                saveToLocalStorage();
+                renderTasks();
+                refreshCalendarUI();
+            });
+
+            document.getElementById('sleep-input').addEventListener('blur', (e) => {
+                const val = e.target.value.trim();
+                if (val === "") delete state.sleepByDay[state.selectedDateStr];
+                else state.sleepByDay[state.selectedDateStr] = val;
+                saveSleepToLocalStorage();
+                updateAnalytics();
+            });
+
+            document.getElementById('category-filter').addEventListener('change', (e) => {
+                state.activeFilter = e.target.value;
+                renderTasks();
+            });
+
+            const container = document.getElementById('task-container');
+
+            container.addEventListener('change', (e) => {
+                if (e.target.classList.contains('custom-cb')) {
+                    const id = parseInt(e.target.dataset.id);
+                    const activeTasks = state.tasksByDay[state.selectedDateStr] || [];
+                    const task = activeTasks.find(t => t.id === id);
+                    if (task) {
+                        task.completed = e.target.checked;
+                        saveToLocalStorage();
+                        renderTasks();
+                        refreshCalendarUI();
+                    }
+                }
+            });
+
+            container.addEventListener('blur', (e) => {
+                if (e.target.dataset.field === 'text') {
+                    const id = parseInt(e.target.dataset.id);
+                    const activeTasks = state.tasksByDay[state.selectedDateStr] || [];
+                    const task = activeTasks.find(t => t.id === id);
+                    if (task) {
+                        task.text = e.target.value;
+                        saveToLocalStorage();
+                        if (state.activeTab === 'analytics') renderAdvancedAnalytics();
+                    }
+                }
+            }, true);
+
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('.delete-task-btn');
+                if (btn) {
+                    const id = parseInt(btn.dataset.id);
+                    state.tasksByDay[state.selectedDateStr] = (state.tasksByDay[state.selectedDateStr] || []).filter(
+                        t => t.id !== id);
+                    if (state.tasksByDay[state.selectedDateStr].length === 0) delete state.tasksByDay[state
+                    .selectedDateStr];
+                    saveToLocalStorage();
+                    renderTasks();
+                    refreshCalendarUI();
+                }
+            });
+
+            document.getElementById('export-btn').addEventListener('click', exportData);
+            document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file-input')
+                .click());
+            document.getElementById('import-file-input').addEventListener('change', importData);
+        }
+
+        function refreshCalendarUI() {
+            buildMonthlyCalendarList(state.viewYear, state.viewMonth);
+            const targetEl = document.getElementById(`day-card-${state.selectedDateStr}`);
+            if (targetEl) targetEl.classList.add('border-purple-500/60', 'bg-white/10');
+        }
+
+        // ─── EXPORT / IMPORT ──────────────────────────────────────────────────
+        function exportData() {
+            const exportBundle = { tasksByDay: state.tasksByDay, sleepByDay: state.sleepByDay };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportBundle, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "cadenza_ai_planner_data.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileReader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && typeof imported === 'object') {
+                        if (imported.tasksByDay) { state.tasksByDay = imported.tasksByDay;
+                            saveToLocalStorage(); }
+                        if (imported.sleepByDay) { state.sleepByDay = imported.sleepByDay;
+                            saveSleepToLocalStorage(); }
+                        buildMonthlyCalendarList(state.viewYear, state.viewMonth);
+                        selectDay(state.selectedDateStr);
+                        runAIAnalyticsEngine();
+                        if (state.activeTab === 'analytics') renderAdvancedAnalytics();
+                    }
+                } catch (err) { /* ignore */ }
+            };
+            fileReader.readAsText(file);
+        }
+
+        // ─── BOOT ──────────────────────────────────────────────────────────────
+        window.onload = initApp;
+    </script>
+</body>
+</html>
