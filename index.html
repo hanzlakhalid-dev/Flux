@@ -522,6 +522,23 @@
 
             </div>
 
+            <!-- NEW SLEEP TRACKING CHART -->
+            <div class="glass-panel rounded-2xl p-6 space-y-4">
+                <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">💤</span>
+                        <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Sleep Duration Trend</h3>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="avg-sleep-badge" class="text-[10px] text-blue-300/80 font-mono font-semibold bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">Avg: --h</span>
+                        <span class="text-[10px] text-slate-400 font-mono">Daily hours</span>
+                    </div>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="sleepTrendChart"></canvas>
+                </div>
+            </div>
+
             <div class="glass-panel rounded-2xl p-6 space-y-6">
                 <div class="flex justify-between items-center border-b border-white/5 pb-4">
                     <div>
@@ -604,6 +621,7 @@
         let weeklyBarChartInstance = null;
         let monthlyTrendChartInstance = null;
         let taskFrequencyChartInstance = null;
+        let sleepTrendChartInstance = null;
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const explicitWeekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -668,6 +686,7 @@
 
         function saveSleepToLocalStorage() {
             localStorage.setItem('Flux_flow_planner_sleep', JSON.stringify(state.sleepByDay));
+            if (state.activeTab === 'analytics') renderSleepTrendChart();
         }
 
         function setupClock() {
@@ -707,6 +726,7 @@
                     if (monthlyTrendChartInstance) monthlyTrendChartInstance.resize();
                     if (weeklyBarChartInstance) weeklyBarChartInstance.resize();
                     if (taskFrequencyChartInstance) taskFrequencyChartInstance.resize();
+                    if (sleepTrendChartInstance) sleepTrendChartInstance.resize();
                 });
             }
         }
@@ -1023,9 +1043,107 @@
             renderTaskFrequencyChart(taskList);
             renderConsistencyTable();
             generateAIInsights(taskList);
+            renderSleepTrendChart();
 
             const bottleneckCount = taskList.filter(item => item.done < item.occurrences).length;
             document.getElementById('analytics-ai-alerts-count').innerText = bottleneckCount;
+        }
+
+        function renderSleepTrendChart() {
+            const prefix = `${state.viewYear}-${String(state.viewMonth + 1).padStart(2, '0')}`;
+            const daysInMonth = getDaysInMonth(state.viewYear, state.viewMonth);
+            const labels = Array.from({ length: daysInMonth }, (_, i) => `Day ${i + 1}`);
+            const sleepData = Array(daysInMonth).fill(null);
+            let totalSleep = 0;
+            let sleepCount = 0;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = formatDateKey(state.viewYear, state.viewMonth, day);
+                const raw = state.sleepByDay[dateKey];
+                if (raw !== undefined && raw !== "") {
+                    const val = parseFloat(raw);
+                    if (!isNaN(val) && val > 0) {
+                        sleepData[day - 1] = val;
+                        totalSleep += val;
+                        sleepCount++;
+                    }
+                }
+            }
+
+            const avg = sleepCount > 0 ? (totalSleep / sleepCount).toFixed(1) : '--';
+            const badge = document.getElementById('avg-sleep-badge');
+            if (badge) badge.innerText = `Avg: ${avg}h`;
+
+            const canvas = document.getElementById('sleepTrendChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (sleepTrendChartInstance) {
+                sleepTrendChartInstance.destroy();
+                sleepTrendChartInstance = null;
+            }
+
+            const gradientFill = ctx.createLinearGradient(0, 0, 0, 260);
+            gradientFill.addColorStop(0, 'rgba(96, 165, 250, 0.35)');
+            gradientFill.addColorStop(1, 'rgba(96, 165, 250, 0.02)');
+
+            sleepTrendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Sleep (hours)',
+                        data: sleepData,
+                        borderColor: '#60a5fa',
+                        backgroundColor: gradientFill,
+                        fill: true,
+                        tension: 0.38,
+                        pointRadius: 3,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#60a5fa',
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: '#60a5fa',
+                        pointHoverBorderWidth: 3,
+                        pointBorderWidth: 0,
+                        spanGaps: true,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    animation: { duration: 500, easing: 'easeOutCubic' },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { color: '#64748b', maxTicksLimit: 10, font: { family: 'JetBrains Mono', size: 9, weight: '600' } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 12,
+                            border: { display: false },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#64748b', stepSize: 2, callback: v => v + 'h', font: { family: 'JetBrains Mono', size: 9 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(8,12,22,.96)',
+                            borderColor: 'rgba(255,255,255,.09)',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: c => c.raw !== null ? ` ${c.raw} hours slept` : ' No data'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderTaskFrequencyChart(taskList) {
@@ -1309,7 +1427,7 @@
                 if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
                 buildMonthlyCalendarList(state.viewYear, state.viewMonth);
                 document.getElementById('total-days-month').innerText = getDaysInMonth(state.viewYear, state.viewMonth);
-                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); }); }
+                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); sleepTrendChartInstance?.resize(); }); }
             });
 
             document.getElementById('next-month-btn').addEventListener('click', () => {
@@ -1317,7 +1435,7 @@
                 if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
                 buildMonthlyCalendarList(state.viewYear, state.viewMonth);
                 document.getElementById('total-days-month').innerText = getDaysInMonth(state.viewYear, state.viewMonth);
-                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); }); }
+                if (state.activeTab === 'analytics') { renderAdvancedAnalytics(); requestAnimationFrame(() => { monthlyTrendChartInstance?.resize(); taskFrequencyChartInstance?.resize(); sleepTrendChartInstance?.resize(); }); }
             });
 
             const addBtn = document.getElementById('add-task-btn');
